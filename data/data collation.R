@@ -56,5 +56,14 @@ other.catch <- read.csv("data/total.goa.salmon.catch.csv")
 ###############
 # breaking off from above to punch out a climate data set for nonstationary DFA
 
-dat <- read.csv("")
+climate <- read.csv("data/updated goa climate data.csv")
+
+head(climate)
+
+climate$upwelling <- apply(climate[,6:8], 1, mean)
+
+climate <- climate %>%
+  filter(year <= 2012) %>%
+  select(1:5, 14:15)
+
 
