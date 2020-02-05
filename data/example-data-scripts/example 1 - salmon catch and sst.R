@@ -90,7 +90,6 @@ ggplot(trend.CI, aes(x=year, y=estimate)) +
   geom_hline(yintercept = 0) + 
   ggtitle("DFA trend")
 
-
 # now load SST
 SST <- read.csv("data/salmon.and.covariate.data.csv")
 
