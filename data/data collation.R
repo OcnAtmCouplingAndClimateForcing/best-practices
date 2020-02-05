@@ -67,10 +67,17 @@ climate <- climate %>%
   select(1:5, 14:15)
 
 # add a time series of full-GOA winter SST
+
+library(ncdf4)
+library(maps)
+library(mapdata)
+library(fields)
+library(chron)
+
 # script for calculating GOA sst anomalies wrt 1951-1980
-download.file("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nceiErsstv5.nc?sst[(1900-01-01):1:(2019-12-01T00:00:00Z)][(0.0):1:(0.0)][(54):1:(62)][(200):1:(226)]", "~temp")
+download.file("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nceiErsstv5.nc?sst[(1900-01-01):1:(2019-12-01T00:00:00Z)][(0.0):1:(0.0)][(54):1:(62)][(200):1:(226)]", "data/temp.nc")
 # load and process SST data
-nc <- nc_open("~temp")
+nc <- nc_open("data/temp.nc")
 
 # extract dates
 
