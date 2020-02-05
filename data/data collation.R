@@ -66,4 +66,93 @@ climate <- climate %>%
   filter(year <= 2012) %>%
   select(1:5, 14:15)
 
+# add a time series of full-GOA winter SST
+# script for calculating GOA sst anomalies wrt 1951-1980
+download.file("https://coastwatch.pfeg.noaa.gov/erddap/griddap/nceiErsstv5.nc?sst[(1900-01-01):1:(2019-12-01T00:00:00Z)][(0.0):1:(0.0)][(54):1:(62)][(200):1:(226)]", "~temp")
+# load and process SST data
+nc <- nc_open("~temp")
+
+# extract dates
+
+ncvar_get(nc, "time")   # seconds since 1-1-1970
+raw <- ncvar_get(nc, "time")
+h <- raw/(24*60*60)
+d <- dates(h, origin = c(1,1,1970))
+
+# extract study area
+# 54-62 deg. N, 200-226 deg. E
+x <- ncvar_get(nc, "longitude")
+y <- ncvar_get(nc, "latitude")
+
+SST <- ncvar_get(nc, "sst", verbose = F)
+
+# Change data from a 3-D array to a matrix of monthly data by grid point:
+# First, reverse order of dimensions ("transpose" array)
+SST <- aperm(SST, 3:1)  
+
+# Change to matrix with column for each grid point, rows for monthly means
+SST <- matrix(SST, nrow=dim(SST)[1], ncol=prod(dim(SST)[2:3]))  
+
+# Keep track of corresponding latitudes and longitudes of each column:
+lat <- rep(y, length(x))   
+lon <- rep(x, each = length(y))   
+dimnames(SST) <- list(as.character(d), paste("N", lat, "E", lon, sep=""))
+
+# plot to check
+
+# need to drop Bristol Bay cells
+BB <- c("N58E200", "N58E202", "N56E200")
+SST[,BB] <- NA
+
+# get anomaly for 1951:1980
+
+yr <- as.numeric(as.character(years(d)))
+
+#m <- months(d[yr %in% 1951:1980])
+m <- months(d)
+f <- function(x) tapply(x, m[yr %in% 1981:2010], mean)
+mu <- apply(SST[yr %in% 1981:2010,], 2, f)	# Compute monthly means for each time series (location)
+# mu <- apply(SST, 2, f)	
+
+mu <- mu[rep(1:12, floor(length(d)/12)),] 
+
+f <- function(x) tapply(x, m[yr %in% 1981:2010], sd)
+sd <- apply(SST[yr %in% 1981:2010,], 2, f)	# Compute monthly sd for each time series (location)
+# mu <- apply(SST, 2, f)	
+
+sd <- sd[rep(1:12, floor(length(d)/12)),] 
+
+
+# xtra <- 12*((length(d)/12)-floor(length(d)/12))
+# 
+# mu <- rbind(mu, mu[1:xtra,])
+
+anom <- rowMeans((SST - mu)/sd, na.rm=T)   # Compute matrix of anomalies!
+
+plot.anom <- data.frame(year=1900:2019,
+                        anom=tapply(anom, yr, mean))
+
+plot.anom$color <- as.factor(ifelse(plot.anom$anom < 0, 1, 2))
+
+ggplot(plot.anom, aes(year, anom, fill=color)) +
+  theme_bw() +
+  geom_bar(position="dodge", stat="identity", color="dark grey", size=0.1) +
+  scale_fill_manual(values=c("blue", "red")) +
+  ylab("Anomaly (SD) 
+       relative to 1981-2010") +
+  geom_hline(yintercept = 0, color="dark grey") +
+  theme(legend.position = 'none', axis.title.x = element_blank()) +
+  scale_x_continuous(breaks = seq(1900, 2020, 20))
+
+ggsave("sst anom.png", width=4, height=2.5, units="in")
+
+# set up winter year
+win.yr <- yr
+win.yr[m %in% c("Nov", "Dec")] <- win.yr[m %in% c("Nov", "Dec")]+1
+
+anom.win <- anom[m %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
+win.yr <- win.yr[m %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
+
+win.sst <- tapply(anom.win, win.yr, mean)
+
 
