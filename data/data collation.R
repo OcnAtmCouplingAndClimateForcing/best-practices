@@ -105,61 +105,44 @@ lat <- rep(y, length(x))
 lon <- rep(x, each = length(y))   
 dimnames(SST) <- list(as.character(d), paste("N", lat, "E", lon, sep=""))
 
-# plot to check
-
 # need to drop Bristol Bay cells
 BB <- c("N58E200", "N58E202", "N56E200")
 SST[,BB] <- NA
 
-# get anomaly for 1951:1980
+month.sst <- rowMeans(SST, na.rm = T)
 
+# get winter-only means
 yr <- as.numeric(as.character(years(d)))
-
-#m <- months(d[yr %in% 1951:1980])
 m <- months(d)
-f <- function(x) tapply(x, m[yr %in% 1981:2010], mean)
-mu <- apply(SST[yr %in% 1981:2010,], 2, f)	# Compute monthly means for each time series (location)
-# mu <- apply(SST, 2, f)	
-
-mu <- mu[rep(1:12, floor(length(d)/12)),] 
-
-f <- function(x) tapply(x, m[yr %in% 1981:2010], sd)
-sd <- apply(SST[yr %in% 1981:2010,], 2, f)	# Compute monthly sd for each time series (location)
-# mu <- apply(SST, 2, f)	
-
-sd <- sd[rep(1:12, floor(length(d)/12)),] 
-
-
-# xtra <- 12*((length(d)/12)-floor(length(d)/12))
-# 
-# mu <- rbind(mu, mu[1:xtra,])
-
-anom <- rowMeans((SST - mu)/sd, na.rm=T)   # Compute matrix of anomalies!
-
-plot.anom <- data.frame(year=1900:2019,
-                        anom=tapply(anom, yr, mean))
-
-plot.anom$color <- as.factor(ifelse(plot.anom$anom < 0, 1, 2))
-
-ggplot(plot.anom, aes(year, anom, fill=color)) +
-  theme_bw() +
-  geom_bar(position="dodge", stat="identity", color="dark grey", size=0.1) +
-  scale_fill_manual(values=c("blue", "red")) +
-  ylab("Anomaly (SD) 
-       relative to 1981-2010") +
-  geom_hline(yintercept = 0, color="dark grey") +
-  theme(legend.position = 'none', axis.title.x = element_blank()) +
-  scale_x_continuous(breaks = seq(1900, 2020, 20))
-
-ggsave("sst anom.png", width=4, height=2.5, units="in")
 
 # set up winter year
 win.yr <- yr
 win.yr[m %in% c("Nov", "Dec")] <- win.yr[m %in% c("Nov", "Dec")]+1
 
-anom.win <- anom[m %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
+winter.month.sst <- month.sst[m %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
 win.yr <- win.yr[m %in% c("Nov", "Dec", "Jan", "Feb", "Mar")]
 
-win.sst <- tapply(anom.win, win.yr, mean)
+win.sst <- tapply(winter.month.sst, win.yr, mean)
+win.sst <- win.sst[names(win.sst) %in% 1950:2012]
+plot(1950:2012, win.sst, type="l")
 
+climate$winter.sst <- win.sst
 
+# need to add freshwater!
+
+# load data from ecology paper
+dat <- read.csv("data/GOA environmental data.csv")
+
+head(dat)
+tail(dat)
+
+climate$freshwater <- dat$Freshwater
+
+# for grins, compare SST time series!
+plot(dat$SST, climate$winter.sst)
+# similar, but different somehow!
+# best to conitnue using the one I just downloaded...might be that the difference has
+# something to do with ERSSTv5 vs ERSSTv4...also maybe data processing differences
+
+# and save this example
+write.csv(climate, "data/example 2 - goa climate variables.csv", row.names = F)
