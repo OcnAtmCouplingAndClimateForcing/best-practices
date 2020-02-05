@@ -49,3 +49,12 @@ dat <- left_join(dat, clim.dat)
 
 # first, chum salmon catch from 2018 PRSB paper
 other.catch <- read.csv("data/total.goa.salmon.catch.csv")
+
+
+
+
+###############
+# breaking off from above to punch out a climate data set for nonstationary DFA
+
+dat <- read.csv("")
+
